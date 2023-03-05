@@ -1,0 +1,664 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Note that .env was changed to .env.local (Next uses this)
+// This will make all Prisma commands fail because they are set to use .env
+// Scripts were added to package.json to rectify this
+
+// npm run migrate:dev --name init
+// run the above to migrate the model with the database.
+// migration syncs / modifies the database so that it matches the prisma model
+
+// npm run prisma:studio for GUI
+
+
+
+model Escort {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name     String 
+  online     Boolean     @default(false)
+  privateEmail     String      @unique
+  emailVerifiedOn   DateTime?
+  privatePhoneNumber     String?
+  phoneNumberVerifiedOn   DateTime?
+  homeAddress   String?
+  identificationDoc1url    String?
+  identificationDoc2url    String?
+  identifyingImageUrl     String?
+  identityDocumentsVerifiedOn   DateTime?
+  identityDocumentsVerifiedBy   String?   
+  plan      EscortPlan?
+  usingDepositSystem     Boolean    @default(false)
+  numberOfDepositsForMonth      Int?
+  totalNumOfDeposits         Int?
+  reviewService       Boolean?    @default(false)
+  ourReview       String?
+  bookingService    Boolean   @default(false)
+  transactionCount    Int   @default(0)
+  availableNowService    Boolean   @default(false)
+  escortSafeService      Boolean   @default(false)
+  giftRelayService      Boolean    @default(false)
+  flags EscortInvestigation[]
+  accountBlacklistedOn    DateTime?
+  displaySuburb    Boolean    @default(false)
+  suburb     String?
+  city      String?
+  suburbCoordinates   String?    
+  age         Int?      @db.TinyInt
+  photos    Photos[]
+  meetsWith EscortMeetsWith[]
+  incalls        Boolean    @default(false)
+  outcalls        Boolean    @default(false)
+  activities    EscortActivities[]
+  specialCategory SpecialCategory?
+  bodyShape     BodyShape?
+  height        Int?      @db.SmallInt
+  hairColour     HairColour?
+  pubicHair     PubicHair?
+  ethnicity     Ethnicity?
+  nationality    String?
+  languages       String?
+  education       Education?
+  smoker      Smoker?
+  drinker     Drinker?
+  dressSize       String?
+  braSize      String?
+  shoeSize      String?
+  favColour      String?
+  favCuisine      String?
+  birthday        DateTime?
+  basePrice   Decimal?   @db.Decimal(9, 2)
+  incallPrices    EscortIncallPrice[] 
+  outcallPrices    EscortOutcallPrice[] 
+  priceInfo      String?
+  deposit    Decimal?   @db.Decimal(9, 2)
+  preferredContactMethod   ContactMethod?
+  contactInstructions     String?
+  whatsApp    String?
+  publicPhone   String?
+  publicEmail       String?
+  links       Link[]
+  profileHeading    String?
+  aboutMe    String?
+  question1       Question?
+  answer1         String?
+  question2       Question?
+  answer2         String?
+  question3       Question?
+  answer3         String?
+  incallAddress    String?
+  worksWithRequested    WorksWithRelationships[]     @relation("accepted")
+  worksWithAccepted     WorksWithRelationships[]     @relation("requester")
+  generalCancellationPolicy      CancellationPolicyCharge?
+  reviews     EscortReview[]
+  bookings    Booking[]
+  isUnrated   Boolean   @default(true)
+  rating    Decimal     @db.Decimal(3, 2) @default(0.00)
+  avgResponseTime   Float     @default(0)
+  reviewsWritten  UserPaidReview[]
+}
+
+model WorksWithRelationships {
+  requester    Escort    @relation("requester", fields: [requesterId], references: [id])
+  requesterId  Int
+  accepted   Escort    @relation("accepted", fields: [acceptedId], references: [id])
+  acceptedId Int
+
+  @@id([requesterId, acceptedId])
+
+}
+
+model Photos {
+  id        Int    @id @default(autoincrement())
+  escort    Escort    @relation(fields: [escortId], references: [id])
+  escortId    Int
+  imageUrl    String
+  order     Int   @db.TinyInt
+}
+
+model EscortActivities {
+  id     Int   @id @default(autoincrement())
+  escort   Escort? @relation(fields: [escortId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  activity    Activity  @relation(fields: [activityId], references: [id])
+  escortId Int
+  activityId  Int
+}
+
+model Activity {
+  id    Int        @id @default(autoincrement())
+  name  String     @unique
+  escorts EscortActivities[]
+}
+
+model EscortMeetsWith {
+  id     Int   @id @default(autoincrement())
+  escort   Escort? @relation(fields: [escortId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  meetsWith    MeetsWith  @relation(fields: [meetsWithId], references: [id])
+  escortId Int
+  meetsWithId  Int
+}
+
+model MeetsWith {
+  id    Int        @id @default(autoincrement())
+  name  MeetsWithOption     @unique
+  escorts EscortMeetsWith[]
+}
+
+enum MeetsWithOption {
+  men
+  women
+  mfcouples
+  mmcouples
+  groupSex
+  swingersParties
+  publicfunctions
+  privateEvents
+  disabled
+  transexuals
+}
+
+model Link {
+  id    Int        @id @default(autoincrement())
+  escort   Escort? @relation(fields: [escortId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  escortId Int
+  linkMedia     LinkMedia
+  linkUrl     String
+}
+
+enum LinkMedia {
+  twitter
+  instagram
+  website
+  snapchat
+  onlyfans
+  linktree
+  fansly
+  wishlist
+}
+
+// This is the horseshit you have to go through to have two of the same relations in the same model. name and map added.
+// Got rid of it. Not worth it.
+
+model EscortIncallPrice {
+  id     Int   @id @default(autoincrement())
+  escort   Escort?      @relation(fields: [escortId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  escortId Int
+  time      Timeframe
+  price       Int
+  includesInfo    String?
+}
+
+model EscortOutcallPrice {
+  id     Int   @id @default(autoincrement())
+  escort   Escort?      @relation(fields: [escortId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  escortId Int
+  time      Timeframe
+  price       Int
+  includesInfo    String?
+}
+
+
+enum Timeframe {
+  mins15
+  mins30
+  hour1
+  mins90
+  hours2
+  hours3
+  hours4
+  hours5
+  hours6
+  hours7
+  hours8
+  hours10
+  hours12
+  additionalHour
+  overnight
+  day
+  extra
+  other
+}
+
+
+
+enum EscortPlan {
+  noneSelected
+  freePlan
+  monthAdvertiseWithContacts
+  premium
+  month12
+  month12Premium
+}
+
+enum SpecialCategory {
+  noneSelected
+  dominatrixMistress
+  hotwife
+  onlineOnly
+  couple
+  massageOnly
+  pornActress
+  sugarBaby
+  lesbian
+  maleEscort
+  trans
+}
+// Really not sure if we should let sugarbabies on our site. They are 
+
+enum ContactMethod {
+  call
+  text
+  whatsApp
+  email
+  ourMessagingService
+}
+
+enum CancellationPolicyCharge {
+  free
+  percent10
+  percent25
+  percent50
+  percent100
+  customPolicy
+}
+
+enum BodyShape {
+  noneSelected
+  petite
+  athletic
+  average
+  curvy
+  aFewExtraPounds
+  bbw
+}
+
+enum Ethnicity {
+  noneSelected
+  asian
+  southAsian
+  black
+  latin
+  eastIndian
+  middleEastern
+  nativeAmerican
+  aboriginalOrTSIslander
+  maori
+  pacificIslander
+  whiteCaucasian
+  european
+  caribean
+}
+
+
+enum Education {
+  noneSelected
+  highSchool
+  studying
+  university
+}
+
+enum HairColour {
+  noneSelected
+  blonde
+  brunette
+  black
+  red
+  grey
+  other
+}
+
+enum EyeColour {
+  noneSelected
+  green
+  hazel
+  brown
+  blue
+}
+
+enum PubicHair {
+  noneSelected
+  shaved
+  trimmed
+  natural
+}
+
+enum Smoker {
+  noneSelected
+  nonSmoker
+  socially
+  yesSmoker
+}
+
+enum Drinker {
+  noneSelected
+  nonDrinker
+  occasionalDrinker
+  happyDrinker
+}
+
+enum Question {
+  none
+  q1
+  q2
+  q3
+  q4
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name     String   
+  email     String      @unique
+  emailVerifiedOn   DateTime?
+  phoneNumber     String
+  phoneNumberVerifiedOn   DateTime?
+  identificationDoc1url    String?
+  identificationDoc2url    String?
+  identifyingImageUrl     String?
+  profilePictureUrl     String?
+  aboutMe     String?
+  identityDocumentsVerifiedOn   DateTime?
+  identityDocumentsVerifiedBy   String?
+  recentSearch1 String?
+  recentSearch2 String?
+  recentSearch3 String?
+  recentSearch4 String?
+  isUnrated   Boolean   @default(true)
+  rating    Decimal     @db.Decimal(3, 2) @default(0.00)
+  reviews   UserPaidReview[]
+  reviewsWritten    EscortReview[]
+  bookings    Booking[]
+  transactionCount   Int    @db.SmallInt  @default(0)
+  transactionValue   Decimal @db.Decimal(3, 2) @default(0.00)
+  isSuspended   Boolean     @default(false)
+  flags UserInvestigation[]
+  notesForEscorts   String?
+  avgResponseTime   Float     @default(0)
+  accountBlacklistedOn    DateTime?
+}
+
+model EscortInvestigation {
+  id        Int      @id @default(autoincrement())
+  userAccount      Escort   @relation(fields: [escortId], references: [id])
+  escortId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  flagType  FlagTypeEscort
+  investigatingAgent  String
+  actions   String
+  recommendations   String
+  communications   MessageChain[]
+  result  FlagInvestigationResult
+  isClosed    Boolean     @default(false)
+}
+
+enum FlagTypeEscort {
+  rudeOrDisrespectful
+  violent
+  failedToProvideService
+  suspectedPolicyBreach
+  underAge
+  escortWellbeingConcern
+  unresolvedTransaction
+  consistentLowRating
+  suspectedIdentityFraud
+}
+
+
+model UserInvestigation {
+  id        Int      @id @default(autoincrement())
+  userAccount      User   @relation(fields: [userId], references: [id])
+  userId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  flagType  FlagTypeUser
+  investigatingAgent  String
+  actions   String
+  recommendations   String
+  communications   MessageChain[]
+  result  FlagInvestigationResult
+  isClosed    Boolean     @default(false)
+}
+
+enum FlagTypeUser {
+  rudeOrDisrespectful
+  violent
+  failureToPay
+  suspectedPolicyBreach
+  underAge
+  unresolvedTransaction
+  consistentLowRating
+  suspectedIdentityFraud
+}
+
+enum FlagInvestigationResult {
+  warned
+  accountSuspendedUntilRectified
+  userBlacklisted
+}
+
+
+model Booking {
+  id        Int    @id @default(autoincrement())
+  escort      Escort   @relation(fields: [escortId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  escortId    Int
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  itemAgreedRate    Decimal   @db.Decimal(7, 2)
+  agreedDeposit     Decimal   @db.Decimal(7, 2)
+  expectedtransactionCost   Decimal   @db.Decimal(7, 2)
+  startTime    DateTime
+  endTime    DateTime
+  escortNote   String?
+  userNote    String?
+  communication   MessageChain[]
+  statusAccepted  Boolean   @default(false)
+  acceptedOnDate   DateTime?
+  statusDeclined  Boolean   @default(false)
+  declinedOnDate  DateTime?
+  modRequest    Boolean?
+  modPickUpTime    DateTime?
+  modReturnTime    DateTime?
+  statusCancelled   Boolean   @default(false)
+  cancelledOnDate   DateTime?
+  bookingClosedOnDate DateTime?
+  transaction   Transaction?
+  transactionStatus TransactionStatus @default(uninitialized)
+}
+
+
+model Transaction {
+  id        Int    @id @default(autoincrement())
+  booking      Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  bookingId Int @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    TransactionStatus
+  transferRecords       TransferRecord[]    
+  depositDebitsSuccessful    Boolean   @default(false)
+  depositReturnSuccessful    Boolean   @default(false)
+  bookingDebitSuccessful    Boolean   @default(false)
+  jobConfirmed     Boolean   @default(false)
+  jobConfirmedTime    DateTime?
+  tipAmount      Int?    @db.SmallInt
+  tipDebitOutstanding     Boolean @default(false)
+  escortCreditSuccessful  Boolean   @default(false)
+  enactedCancellationPolicy Boolean  @default(false)
+  cancellationForgiven Boolean?
+  escortDepositCreditSuccessful    Boolean   @default(false)
+  openUserRefundClaim     Boolean               @default(false)
+  UserRefundClaim     UserRefundClaim?
+  escortInitiatedRefundAmount     Int?    @db.SmallInt
+  UserRefundCreditOutstanding  Boolean     @default(false)
+}
+
+enum TransactionStatus {
+  uninitialized
+  open
+  awaitingDepositDebit
+  awaitingBookingDebit
+  awaitingJobConfirmation
+  awaitingCancellationProcessing
+  awaitingUserClaimProcessing
+  awaitingEscortClaimProcessing
+  awaitingUserRefund
+  awaitingAdditionalDebit
+  awaitingEscortCredit
+  closed
+}
+
+model TransferRecord {
+  id      Int       @id @default(autoincrement())
+  type    TransferType
+  description   TransferDescription
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transaction   Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  transactionId Int
+  creditAmount   Decimal   @db.Decimal(9, 2) @default(0.00)
+  paymentMethod   PaymentMethod
+  providersRecordId   String?
+  success     Boolean   @default(false)
+}
+
+enum PaymentMethod {
+  stripe
+  paypal
+  googlePay
+}
+
+enum TransferType {
+  debit
+  credit
+}
+
+enum TransferDescription {
+  depositDebit
+  bookingDebit
+  tipDebit
+  refundDebitFromEscort
+  depositReturnCredit
+  refundCredit
+  escortPayment
+}
+
+model EscortReview {
+  id      Int       @id @default(autoincrement())
+  escort    Escort     @relation(fields: [escortId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  escortId    Int
+  author    User?     @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  userId    Int?
+  createdAt DateTime @default(now())
+  rating    Rating
+  tag1    EscortTags
+  tag2    EscortTags
+  tag3    EscortTags
+  tag4    EscortTags
+  tag5    EscortTags
+  publicComment   String?
+  privateComment    String?
+  reviewDisqualified    Boolean     @default(false)
+}
+
+enum Rating {
+  rated1
+  rated2
+  rated3
+  rated4
+  rated5
+}
+
+enum EscortTags {
+  bestBlowJob
+  hotterThanHerPhotos
+  notAsHotAsPhotos
+  easyToTalkTo
+  squirtsALot
+  
+}
+
+model UserPaidReview {
+  id      Int       @id @default(autoincrement())
+  author    Escort?     @relation(fields: [escortId], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  escortId    Int?
+  aboutUser     User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    Int
+  createdAt DateTime @default(now())
+  publicComment   String?
+  privateComment    String?
+  reviewDisqualified    Boolean     @default(false)
+}
+
+
+model UserRefundClaim {
+  id      Int       @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transaction   Transaction  @relation(fields: [transactionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  transactionId Int @unique
+  details     String
+  value     Decimal     @db.Decimal(7, 2) @default(0.00)
+  statusClosed    Boolean    @default(false)
+  closedAt      DateTime?    
+  result    ClaimResult?
+  comments    String?
+  report      String?
+}
+
+enum ClaimResult {
+  paid
+  rejected
+}
+
+
+model MessageChain {
+  id      Int       @id @default(autoincrement())
+  type    MessageType
+  subject     String
+  booking      Booking?   @relation(fields: [bookingId], references: [id], onDelete:Cascade, onUpdate:Cascade)
+  bookingId Int?
+  userInvestigation   UserInvestigation?   @relation(fields: [userInvestigationId], references: [id])
+  userInvestigationId Int?
+  escortInvestigation   EscortInvestigation?   @relation(fields: [escortInvestigationId], references: [id])
+  escortInvestigationId Int?
+  messages    Message[]   
+}
+
+enum MessageType {
+  bookingQuery
+  investigation
+  inbound
+  notice
+}
+
+
+model Message {
+  id      Int       @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  MessageChain      MessageChain  @relation(fields: [MessageChainId], references: [id])
+  MessageChainId Int
+  Direction      Boolean     
+  orderInChain  Int
+  text    String 
+}
+
+
+
+
+
+
+
